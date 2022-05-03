@@ -172,30 +172,119 @@ SELECT * FROM employees
 WHERE employee_id NOT IN (SELECT employee_id
                           FROM job_history);
 --30. the employee number, name( first name and last name ) and job title for all employees whose salary is more than any average salary of any department.
-SELECT * FROM employees e where e.salary > (
-SELECT AVG(salary)
-FROM employees
-WHERE department_id = e.department_id);
+SELECT employee_id, CONCAT(first_name, CONCAT(' ', last_name)) as Name, job_title
+FROM employees eb
+WHERE e.salary > (SELECT AVG(salary)
+                  FROM employees
+                  WHERE department_id = e.department_id);
 --31. the employee id, name ( first name and last name ) and the job id column with a modified title SALESMAN for those employees whose job title is ST_MAN and DEVELOPER for whose job title is IT_PROG.
+SELECT employee_id, CONCAT(first_name, CONCAT(' ', last_name)) as Name,
+(CASE
+    WHEN job_id = 'ST_MAN' THEN 'SALESMAN'
+    WHEN job_id = 'IT_PROG' THEN 'DEVELOPER'
+    ELSE job_id END) as job
+FROM employees;
 --32. the employee id, name ( first name and last name ), salary and the SalaryStatus column with a title HIGH and LOW respectively for those employees whose salary is more than and less than the average salary of all employees.
+SELECT employee_id, CONCAT(first_name, CONCAT(' ', last_name)) as Name, salary,
+(CASE
+    WHEN salary > (SELECT AVG(salary) FROM employees) THEN 'HIGH'
+    WHEN salary < (SELECT AVG(salary) FROM employees) THEN 'LOW' END) as salary_status
+FROM employees;
 --33. the employee id, name ( first name and last name ), SalaryDrawn, AvgCompare (salary - the average salary of all employees)
     -- and the SalaryStatus column with a title HIGH and LOW respectively for those employees whose salary is more than and less than
     -- the average salary of all employees.
+SELECT employee_id, CONCAT(first_name, CONCAT(' ', last_name)) as Name, salary as SalaryDrawn, (SELECT avg(salary) FROM employees) as avg_compare,
+(CASE
+    WHEN salary > (SELECT AVG(salary) FROM employees) THEN 'HIGH'
+    WHEN salary < (SELECT AVG(salary) FROM employees) THEN 'LOW' END) as salary_status
+FROM employees;
 --34. all the employees who earn more than the average and who work in any of the IT departments.
+SELECT employee_id, CONCAT(first_name, CONCAT(' ', last_name)) as Name
+FROM employees e
+    INNER JOIN departments d ON (d.department_id = e.department_id)
+WHERE salary > (SELECT avg(salary) FROM employees) AND department_name LIKE 'IT%';
 --35. who earns more than Mr. Ozer.
+SELECT employee_id, CONCAT(first_name, CONCAT(' ', last_name)) as Name
+FROM employees
+WHERE salary > (SELECT salary FROM employees WHERE last_name = 'Ozer');
 --36. which employees have a manager who works for a department based in the US.
+SELECT emp.employee_id, CONCAT(emp.first_name, CONCAT(' ', emp.last_name)) as Name
+FROM employees emp
+    INNER JOIN employees mng ON (emp.manager_id = mng.employee_id)
+    INNER JOIN departments d ON (mng.department_id = d.department_id)
+    INNER JOIN locations l ON (d.location_id = l.location_id)
+WHERE l.country_id = 'US';
 --37. the names of all employees whose salary is greater than 50% of their department's total salary bill.
+SELECT CONCAT(first_name, CONCAT(' ', last_name)) as Name
+FROM employees e
+WHERE salary > (SELECT SUM(salary) / 2 FROM employees WHERE e.department_id = department_id);
 --38. the employee id, name ( first name and last name ), salary, department name and city for all
 --the employees who gets the salary as the salary earn by the employee which is maximum within the joining person January 1st, 2002 and December 31st, 2003.  
+SELECT employee_id, CONCAT(first_name, CONCAT(' ', last_name)) as Name, salary, department_name, city
+FROM employees e
+    LEFT JOIN departments d on (e.department_id = d.department_id)
+    LEFT JOIN locations l on (d.location_id = l.location_id)
+WHERE salary = (SELECT MAX(salary)
+                FROM employees
+                WHERE hire_date BETWEEN TO_DATE('1 Jan 2002', 'DD MON YYYY') AND TO_DATE('31 Dec 2003', 'DD MON YYYY'));
 --39. the first and last name, salary, and department ID for all those employees who earn more than the average salary and arrange the list in descending order on salary.
+SELECT first_name, last_name, salary, department_id
+FROM employees
+WHERE salary > (SELECT AVG(salary) FROM employees)
+ORDER BY salary DESC;
 --40. the first and last name, salary, and department ID for those employees who earn more than the maximum salary of a department which ID is 40.
+SELECT first_name, last_name, salary, department_id
+FROM employees
+WHERE salary > (SELECT MAX(salary) FROM employees WHERE department_id = 40);
 --41. the department name and Id for all departments where they located, that Id is equal to the Id for the location where department number 30 is located.
+SELECT department_name, department_id
+FROM departments
+WHERE location_id = (SELECT location_id
+                     FROM departments
+                     WHERE department_id = 30);
 --42. the first and last name, salary, and department ID for all those employees who work in that department where the employee works who hold the ID 201.
+SELECT first_name, last_name, salary, department_id
+FROM employees
+WHERE department_id = (SELECT department_id FROM employees WHERE employee_id = 201);
 --43. the first and last name, salary, and department ID for those employees whose salary is equal to the salary of the employee who works in that department which ID is 40.
+SELECT first_name, last_name, salary, department_id
+FROM employees e1
+WHERE salary IN (SELECT salary FROM employees e2 WHERE e2.department_id = 40);
 --44. the first and last name, salary, and department ID for those employees who earn more than the minimum salary of a department which ID is 40.
+SELECT first_name, last_name, salary, department_id
+FROM employees
+WHERE salary > (SELECT MIN(salary) FROM emp WHERE department_id = 40);
 --45. the first and last name, salary, and department ID for those employees who earn less than the minimum salary of a department which ID is 70.
+SELECT first_name, last_name, salary, department_id
+FROM employees
+WHERE SALARY < (SELECT MIN(salary) FROM employees WHERE department_id = 70);
 --46. the first and last name, salary, and department ID for those employees who earn less than the average salary, and also work at the department where the employee Laura is working as a first name holder.
+SELECT first_name, last_name, salary, department_id
+FROM employees
+WHERE salary < (SELECT AVG(salary) FROM employees)
+    AND department_id IN (SELECT department_id FROM employees WHERE first_name = 'Laura');
 --47. the full name (first and last name) of manager who is supervising 4 or more employees.
+SELECT CONCAT(first_name, CONCAT(' ', last_name)) as Name
+FROM employees
+WHERE employee_id IN (SELECT manager_id FROM employees GROUP BY manager_id HAVING COUNT(*) > 4);
 --48. the details of the current job for those employees who worked as a Sales Representative in the past.
---49. all the infromation about those employees who earn second lowest salary of all the employees.
+SELECT e.employee_id, cur_job.job_title, cur_job.min_salary, cur_job.max_salary
+FROM employees e
+    INNER JOIN jobs cur_job ON e.job_id = cur_job.job_id
+WHERE e.employee_id IN (SELECT jh.employee_id
+                        FROM job_history jh
+                            LEFT JOIN jobs prv_job ON (jh.job_id = prv_job.job_id)
+                        WHERE prv_job.job_title = 'Sales Representative');
+--49. all the information about those employees who earn second lowest salary of all the employees.
+SELECT * FROM employees emp
+WHERE emp.salary = (SELECT salary
+                    FROM (SELECT salary, ROW_NUMBER() over (ORDER BY salary NULLS LAST) row_number
+                          FROM employees
+                          GROUP BY salary)
+                    WHERE row_number = 2
+);
 --50. the department ID, full name (first and last name), salary for those employees who is highest salary drawar in a department.
+SELECT department_id, first_name, last_name, salary
+FROM employees e1
+WHERE salary = (SELECT MAX(e2.salary) FROM employees e2 WHERE e1.department_id = e2.department_id GROUP BY e2.department_id)
+

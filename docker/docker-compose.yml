@@ -14,9 +14,9 @@ services:
       - 'dbdata:/opt/oracle/oradata'
     ports:
       - '1521:1521'
-      - '550:5500'
+      - '5500:5500'
     logging:
-      driver: "local"
+      driver: "k8s-file"
       options:
         max-size: "100m"
         max-file: "2"
